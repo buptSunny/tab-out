@@ -2,7 +2,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Configuration loader for Tab Out.
 //
-// Reads settings from ~/.mission-control/config.json on your Mac.
+// Reads settings from ~/.mission-control/config.json.
 // If that file exists, values from it override the defaults below.
 // If the file doesn't exist or is malformed, defaults are used.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -11,7 +11,7 @@ const fs = require("fs");
 const path = require("path");
 const os = require("os");
 
-// The folder where all Tab Out data lives on your Mac.
+// The folder where all Tab Out data lives (in your home directory).
 const CONFIG_DIR = path.join(os.homedir(), ".mission-control");
 const CONFIG_FILE = path.join(CONFIG_DIR, "config.json");
 

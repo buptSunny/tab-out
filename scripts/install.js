@@ -114,7 +114,7 @@ function installLinux() {
   ensureDir(serviceDir);
 
   const service = `[Unit]
-Description=Tab Out — AI tab manager
+Description=Tab Out — browser tab dashboard
 After=network.target
 
 [Service]
@@ -203,7 +203,7 @@ function main() {
   } else {
     fs.writeFileSync(CONFIG_FILE, JSON.stringify(DEFAULTS, null, 2), 'utf8');
     console.log(`  Created: ${CONFIG_FILE}`);
-    console.log('  Add your API key before starting the server.');
+    console.log('  Run: npm start');
   }
 
   // Step 4: Platform-specific auto-start

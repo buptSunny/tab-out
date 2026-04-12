@@ -1,10 +1,10 @@
 // server/db.js
 // ─────────────────────────────────────────────────────────────────────────────
-// Database layer for Mission Control.
+// Database layer for Tab Out.
 //
 // Think of this file as the "filing cabinet" for the whole app. It sets up a
-// SQLite database — a single file on your Mac that stores all your missions,
-// their URLs, and archives. SQLite is like a tiny, self-contained spreadsheet
+// SQLite database — a single file that stores saved-for-later tabs, their
+// URLs, and archives. SQLite is like a tiny, self-contained spreadsheet
 // engine that lives right on your computer with no separate server needed.
 //
 // We use "better-sqlite3" which is a Node.js library that makes SQLite very
@@ -61,8 +61,8 @@ db.pragma('journal_mode = WAL');
 db.exec(`
   -- ──────────────────────────────────────────────────────────────────────────
   -- missions table
-  -- The core table. Each row is one AI-generated "mission" (a cluster of
-  -- related browser tabs). Status can be:
+  -- The core table. Each row is one "mission" (a group of related browser
+  -- tabs). Status can be:
   --   'active'    — currently being worked on
   --   'cooling'   — not visited recently but not abandoned
   --   'abandoned' — user hasn't touched it in a long time
@@ -226,7 +226,7 @@ const insertMissionUrl = db.prepare(`
 /**
  * deleteMissionUrls
  * Deletes ALL URL rows for a given mission. Used before re-inserting fresh
- * URLs from a new clustering pass (so we don't accumulate duplicates).
+ * URLs from a new sync pass (so we don't accumulate duplicates).
  */
 const deleteMissionUrls = db.prepare(`
   DELETE FROM mission_urls

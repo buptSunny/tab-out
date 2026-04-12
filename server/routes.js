@@ -1,6 +1,6 @@
 // server/routes.js
 // ─────────────────────────────────────────────────────────────────────────────
-// Express API routes for Mission Control.
+// Express API routes for Tab Out.
 //
 // Think of this file as the "front desk" of the app's backend. The browser
 // sends requests here, and these routes figure out what data to fetch or what
@@ -365,7 +365,7 @@ router.post('/defer', (req, res) => {
 
     res.json({ success: true, deferred: created });
   } catch (err) {
-    console.error('[TMC] Error deferring tabs:', err);
+    console.error('[tab-out] Error deferring tabs:', err);
     res.status(500).json({ error: 'Failed to defer tabs' });
   }
 });
@@ -386,7 +386,7 @@ router.get('/deferred', (req, res) => {
 
     res.json({ active, archived });
   } catch (err) {
-    console.error('[TMC] Error fetching deferred tabs:', err);
+    console.error('[tab-out] Error fetching deferred tabs:', err);
     res.status(500).json({ error: 'Failed to fetch deferred tabs' });
   }
 });
@@ -409,7 +409,7 @@ router.get('/deferred/search', (req, res) => {
     const results = searchDeferredArchived.all({ q });
     res.json({ results });
   } catch (err) {
-    console.error('[TMC] Error searching deferred tabs:', err);
+    console.error('[tab-out] Error searching deferred tabs:', err);
     res.status(500).json({ error: 'Failed to search deferred tabs' });
   }
 });
@@ -435,7 +435,7 @@ router.patch('/deferred/:id', (req, res) => {
 
     res.json({ success: true });
   } catch (err) {
-    console.error('[TMC] Error updating deferred tab:', err);
+    console.error('[tab-out] Error updating deferred tab:', err);
     res.status(500).json({ error: 'Failed to update deferred tab' });
   }
 });

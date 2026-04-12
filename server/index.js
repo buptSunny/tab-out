@@ -7,10 +7,6 @@
 //   2. Serves the dashboard HTML/CSS/JS files
 //   3. Hooks up all the API routes (defined in routes.js)
 //   4. Starts listening on the configured port
-//
-// The server does NOT call the LLM on startup or on a schedule.
-// LLM calls only happen when the user explicitly clicks "Organize with AI"
-// on the dashboard. This keeps token costs at zero unless the user asks for it.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const express = require('express');

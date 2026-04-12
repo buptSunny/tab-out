@@ -1011,7 +1011,7 @@ async function renderDeferredColumn() {
     }
 
   } catch (err) {
-    console.warn('[TMC] Could not load deferred tabs:', err);
+    console.warn('[tab-out] Could not load deferred tabs:', err);
     column.style.display = 'none';
   }
 }
@@ -1330,7 +1330,7 @@ document.addEventListener('click', async (e) => {
         body: JSON.stringify({ tabs: [{ url: tabUrl, title: tabTitle }] }),
       });
     } catch (err) {
-      console.error('[TMC] Failed to defer tab:', err);
+      console.error('[tab-out] Failed to defer tab:', err);
       showToast('Failed to save tab');
       return;
     }
@@ -1366,7 +1366,7 @@ document.addEventListener('click', async (e) => {
         body: JSON.stringify({ checked: true }),
       });
     } catch (err) {
-      console.error('[TMC] Failed to check deferred tab:', err);
+      console.error('[tab-out] Failed to check deferred tab:', err);
       return;
     }
 
@@ -1397,7 +1397,7 @@ document.addEventListener('click', async (e) => {
         body: JSON.stringify({ dismissed: true }),
       });
     } catch (err) {
-      console.error('[TMC] Failed to dismiss deferred tab:', err);
+      console.error('[tab-out] Failed to dismiss deferred tab:', err);
       return;
     }
 
@@ -1524,7 +1524,7 @@ document.addEventListener('click', async (e) => {
     try {
       await fetch(`/api/missions/${missionId}/archive`, { method: 'POST' });
     } catch (err) {
-      console.warn('[TMC] Could not archive mission:', err);
+      console.warn('[tab-out] Could not archive mission:', err);
     }
 
     // Animate the card out
@@ -1556,7 +1556,7 @@ document.addEventListener('click', async (e) => {
     try {
       await fetch(`/api/missions/${missionId}/dismiss`, { method: 'POST' });
     } catch (err) {
-      console.warn('[TMC] Could not dismiss mission:', err);
+      console.warn('[tab-out] Could not dismiss mission:', err);
     }
 
     // Animate the card out
@@ -1641,7 +1641,7 @@ document.addEventListener('input', async (e) => {
     archiveList.innerHTML = (data.results || []).map(item => renderArchiveItem(item)).join('')
       || '<div style="font-size:12px;color:var(--muted);padding:8px 0">No results</div>';
   } catch (err) {
-    console.warn('[TMC] Archive search failed:', err);
+    console.warn('[tab-out] Archive search failed:', err);
   }
 });
 
@@ -1787,7 +1787,7 @@ document.getElementById('updateNowBtn')?.addEventListener('click', async () => {
       // The update command ran but returned an error (e.g. merge conflict)
       btn.textContent = 'Failed — see console';
       btn.style.background = 'var(--accent-rose)';
-      console.error('[TMC] Update failed:', message);
+      console.error('[tab-out] Update failed:', message);
       setTimeout(() => {
         btn.textContent = originalText;
         btn.style.background = '';
@@ -1799,7 +1799,7 @@ document.getElementById('updateNowBtn')?.addEventListener('click', async () => {
     // Network error
     btn.textContent = 'Network error';
     btn.style.background = 'var(--accent-rose)';
-    console.error('[TMC] Update request failed:', err);
+    console.error('[tab-out] Update request failed:', err);
     setTimeout(() => {
       btn.textContent = originalText;
       btn.style.background = '';

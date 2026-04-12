@@ -2,21 +2,16 @@
   "name": "tab-out",
   "version": "1.0.0",
   "description": "Keep tabs on your tabs -- new tab page that groups your open tabs by domain and lets you close them with style",
-  "main": "index.js",
-  "directories": {
-    "doc": "docs"
-  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server/index.js",
     "install-service": "node scripts/install.js",
-    "setup": "node scripts/setup-interactive.js",
     "generate-icons": "node scripts/generate-icons.js",
     "package-extension": "node scripts/package-extension.js"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "type": "commonjs",
   "dependencies": {
     "better-sqlite3": "^12.8.0",
