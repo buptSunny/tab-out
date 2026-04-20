@@ -80,6 +80,14 @@ Everything runs inside the Chrome extension. No external server, no API calls, n
 | Sound | Web Audio API (synthesized, no files) |
 | Animations | CSS transitions + JS confetti particles |
 
+## Testing
+
+```bash
+npm test
+```
+
+The test suite uses Node's built-in test runner and covers the pure tab-grouping helpers.
+
 ---
 
 ## License

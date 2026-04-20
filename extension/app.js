@@ -15,6 +15,7 @@
 
 'use strict';
 
+const { buildDomainGroups, filterRealTabs } = globalThis.TabOutHelpers || {};
 
 /* ----------------------------------------------------------------
    CHROME TABS — Direct API Access
@@ -720,16 +721,7 @@ let domainGroups = [];
  * pages, about:blank, etc.
  */
 function getRealTabs() {
-  return openTabs.filter(t => {
-    const url = t.url || '';
-    return (
-      !url.startsWith('chrome://') &&
-      !url.startsWith('chrome-extension://') &&
-      !url.startsWith('about:') &&
-      !url.startsWith('edge://') &&
-      !url.startsWith('brave://')
-    );
-  });
+  return typeof filterRealTabs === 'function' ? filterRealTabs(openTabs) : [];
 }
 
 /**
@@ -1031,115 +1023,9 @@ async function renderStaticDashboard() {
   const realTabs = getRealTabs();
 
   // --- Group tabs by domain ---
-  // Landing pages (Gmail inbox, Twitter home, etc.) get their own special group
-  // so they can be closed together without affecting content tabs on the same domain.
-  const LANDING_PAGE_PATTERNS = [
-    { hostname: 'mail.google.com', test: (p, h) =>
-        !h.includes('#inbox/') && !h.includes('#sent/') && !h.includes('#search/') },
-    { hostname: 'x.com',               pathExact: ['/home'] },
-    { hostname: 'www.linkedin.com',    pathExact: ['/'] },
-    { hostname: 'github.com',          pathExact: ['/'] },
-    { hostname: 'www.youtube.com',     pathExact: ['/'] },
-    // Merge personal patterns from config.local.js (if it exists)
-    ...(typeof LOCAL_LANDING_PAGE_PATTERNS !== 'undefined' ? LOCAL_LANDING_PAGE_PATTERNS : []),
-  ];
-
-  function isLandingPage(url) {
-    try {
-      const parsed = new URL(url);
-      return LANDING_PAGE_PATTERNS.some(p => {
-        // Support both exact hostname and suffix matching (for wildcard subdomains)
-        const hostnameMatch = p.hostname
-          ? parsed.hostname === p.hostname
-          : p.hostnameEndsWith
-            ? parsed.hostname.endsWith(p.hostnameEndsWith)
-            : false;
-        if (!hostnameMatch) return false;
-        if (p.test)       return p.test(parsed.pathname, url);
-        if (p.pathPrefix) return parsed.pathname.startsWith(p.pathPrefix);
-        if (p.pathExact)  return p.pathExact.includes(parsed.pathname);
-        return parsed.pathname === '/';
-      });
-    } catch { return false; }
-  }
-
-  domainGroups = [];
-  const groupMap    = {};
-  const landingTabs = [];
-
-  // Custom group rules from config.local.js (if any)
-  const customGroups = typeof LOCAL_CUSTOM_GROUPS !== 'undefined' ? LOCAL_CUSTOM_GROUPS : [];
-
-  // Check if a URL matches a custom group rule; returns the rule or null
-  function matchCustomGroup(url) {
-    try {
-      const parsed = new URL(url);
-      return customGroups.find(r => {
-        const hostMatch = r.hostname
-          ? parsed.hostname === r.hostname
-          : r.hostnameEndsWith
-            ? parsed.hostname.endsWith(r.hostnameEndsWith)
-            : false;
-        if (!hostMatch) return false;
-        if (r.pathPrefix) return parsed.pathname.startsWith(r.pathPrefix);
-        return true; // hostname matched, no path filter
-      }) || null;
-    } catch { return null; }
-  }
-
-  for (const tab of realTabs) {
-    try {
-      if (isLandingPage(tab.url)) {
-        landingTabs.push(tab);
-        continue;
-      }
-
-      // Check custom group rules first (e.g. merge subdomains, split by path)
-      const customRule = matchCustomGroup(tab.url);
-      if (customRule) {
-        const key = customRule.groupKey;
-        if (!groupMap[key]) groupMap[key] = { domain: key, label: customRule.groupLabel, tabs: [] };
-        groupMap[key].tabs.push(tab);
-        continue;
-      }
-
-      let hostname;
-      if (tab.url && tab.url.startsWith('file://')) {
-        hostname = 'local-files';
-      } else {
-        hostname = new URL(tab.url).hostname;
-      }
-      if (!hostname) continue;
-
-      if (!groupMap[hostname]) groupMap[hostname] = { domain: hostname, tabs: [] };
-      groupMap[hostname].tabs.push(tab);
-    } catch {
-      // Skip malformed URLs
-    }
-  }
-
-  if (landingTabs.length > 0) {
-    groupMap['__landing-pages__'] = { domain: '__landing-pages__', tabs: landingTabs };
-  }
-
-  // Sort: landing pages first, then domains from landing page sites, then by tab count
-  // Collect exact hostnames and suffix patterns for priority sorting
-  const landingHostnames = new Set(LANDING_PAGE_PATTERNS.map(p => p.hostname).filter(Boolean));
-  const landingSuffixes = LANDING_PAGE_PATTERNS.map(p => p.hostnameEndsWith).filter(Boolean);
-  function isLandingDomain(domain) {
-    if (landingHostnames.has(domain)) return true;
-    return landingSuffixes.some(s => domain.endsWith(s));
-  }
-  domainGroups = Object.values(groupMap).sort((a, b) => {
-    const aIsLanding = a.domain === '__landing-pages__';
-    const bIsLanding = b.domain === '__landing-pages__';
-    if (aIsLanding !== bIsLanding) return aIsLanding ? -1 : 1;
-
-    const aIsPriority = isLandingDomain(a.domain);
-    const bIsPriority = isLandingDomain(b.domain);
-    if (aIsPriority !== bIsPriority) return aIsPriority ? -1 : 1;
-
-    return b.tabs.length - a.tabs.length;
+  domainGroups = buildDomainGroups(realTabs, {
+    localLandingPagePatterns: typeof LOCAL_LANDING_PAGE_PATTERNS !== 'undefined' ? LOCAL_LANDING_PAGE_PATTERNS : [],
+    localCustomGroups: typeof LOCAL_CUSTOM_GROUPS !== 'undefined' ? LOCAL_CUSTOM_GROUPS : [],
   });
 
   // --- Render domain cards ---
@@ -1170,6 +1056,38 @@ async function renderStaticDashboard() {
 
 async function renderDashboard() {
   await renderStaticDashboard();
+}
+
+// Debounce dashboard refreshes so bursts of tab events don't cause
+// multiple back-to-back full re-renders.
+let renderTimer = null;
+let renderInFlight = false;
+let rerenderRequested = false;
+
+function scheduleDashboardRender(delay = 120) {
+  if (renderTimer) clearTimeout(renderTimer);
+  renderTimer = setTimeout(() => {
+    renderTimer = null;
+    void refreshDashboard();
+  }, delay);
+}
+
+async function refreshDashboard() {
+  if (renderInFlight) {
+    rerenderRequested = true;
+    return;
+  }
+
+  renderInFlight = true;
+  try {
+    await renderDashboard();
+  } finally {
+    renderInFlight = false;
+    if (rerenderRequested) {
+      rerenderRequested = false;
+      scheduleDashboardRender(0);
+    }
+  }
 }
 
 
@@ -1475,8 +1393,36 @@ document.addEventListener('input', async (e) => {
   }
 });
 
+/* ----------------------------------------------------------------
+   LIVE UPDATES
+   ---------------------------------------------------------------- */
+
+chrome.tabs.onCreated.addListener(() => scheduleDashboardRender());
+chrome.tabs.onRemoved.addListener(() => scheduleDashboardRender());
+chrome.tabs.onMoved.addListener(() => scheduleDashboardRender());
+chrome.tabs.onAttached.addListener(() => scheduleDashboardRender());
+chrome.tabs.onDetached.addListener(() => scheduleDashboardRender());
+chrome.tabs.onActivated.addListener(() => scheduleDashboardRender());
+chrome.tabs.onUpdated.addListener((_tabId, changeInfo) => {
+  if ('status' in changeInfo || 'title' in changeInfo || 'url' in changeInfo || 'pinned' in changeInfo) {
+    scheduleDashboardRender();
+  }
+});
+chrome.windows.onFocusChanged.addListener(() => scheduleDashboardRender());
+
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName === 'local' && (changes.deferred || changes.archived)) {
+    scheduleDashboardRender();
+  }
+});
+
+window.addEventListener('focus', () => scheduleDashboardRender());
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) scheduleDashboardRender();
+});
+
 
 /* ----------------------------------------------------------------
    INITIALIZE
    ---------------------------------------------------------------- */
-renderDashboard();
+void refreshDashboard();
